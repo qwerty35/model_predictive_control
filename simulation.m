@@ -1,0 +1,58 @@
+close all;
+clc;
+clear;
+
+% Parameter
+params.V = 1;
+params.u_max = 0.5;
+
+% Initial condition
+state0 = [0;3;0]; % state = [x;y;theta]
+u0 = 0;
+
+state = state0;
+u_prev = u0;
+
+% Simulation configuration
+total_simulation_time = 10;
+replanning_period = 0.05;
+max_iter = total_simulation_time/replanning_period;
+time = 0;
+nstep = 10;
+tstep = replanning_period/nstep;
+
+traj_state = zeros(max_iter*nstep, length(state0));
+traj_t = zeros(max_iter*nstep, 1);
+traj_u = zeros(max_iter, 2);
+    
+for iter = 1:max_iter
+    tic
+    % Run MPC
+    time_interval = time:tstep:time+replanning_period;
+    params.u = linear_mpc_controller(state, u_prev, params);
+    [traj_part_t, traj_part_state] = ode45(@(t,s) car_dynamics(t, s, params), time_interval, state, params);
+
+    % Update the state
+    state = traj_part_state(end-1,:)';
+    u_prev = params.u;
+    
+    % Save the result
+    traj_state((iter-1)*nstep+1:iter*nstep,:) = traj_part_state(1:end-1,:);
+    traj_t((iter-1)*nstep+1:iter*nstep) = traj_part_t(1:end-1);
+    traj_u(iter,:) = [time params.u];
+    
+    % Go to the next step
+    time = time + replanning_period;
+    toc
+end
+
+figure('Name', 'traj');
+plot(traj_state(:,1), traj_state(:,2))
+figure('Name', 'theta');
+plot(traj_t, traj_state(:,3))
+figure('Name', 'x');
+plot(traj_t, traj_state(:,1))
+figure('Name', 'y');
+plot(traj_t, traj_state(:,2))
+figure('Name', 'u')
+plot(traj_u(:,1), traj_u(:,2))

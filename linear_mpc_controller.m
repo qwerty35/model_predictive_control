@@ -1,9 +1,8 @@
-function u = linear_controller(s, u_prev, params)
-
+function u = linear_mpc_controller(s, u_prev, params)
     V = params.V;
     u_max = params.u_max; 
-    Ts = params.Ts;
     
+    Ts = 0.1;
     N = 20;
     rho = 1;
     
